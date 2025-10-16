@@ -29,4 +29,8 @@ public class VentaSpecification {
     public static Specification<Venta> totalMax(BigDecimal max) {
         return (root, q, cb) -> max == null ? cb.conjunction() : cb.lessThanOrEqualTo(root.get("total"), max);
     }
+
+    public static Specification<Venta> totalMayorQueCero() {
+        return (root, q, cb) -> cb.greaterThan(root.get("total"), BigDecimal.ZERO);
+    }
 }

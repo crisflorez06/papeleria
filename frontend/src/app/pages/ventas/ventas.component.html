@@ -1,0 +1,462 @@
+<div class="row">
+  <!-- Filtros de búsqueda -->
+  <div>
+    <mat-accordion class="mx-5" *ngIf="!vistaProductos">
+      <mat-expansion-panel [(expanded)]="filtrosAbiertos">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Filtros de búsqueda</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="row my-3 mx-1">
+          <div class="col">
+            <label for="metodoPago" class="form-label">Método Pago</label>
+            <select
+              id="metodoPago"
+              class="form-select"
+              [(ngModel)]="filtrosVentas.metodoPago"
+              name="metodoPago"
+            >
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let metodo of metodosPago" [value]="metodo">
+                {{ metodo }}
+              </option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="desde" class="form-label">Ventas Desde</label>
+            <input id="desde" type="date" class="form-control" [(ngModel)]="filtrosVentas.desde" />
+          </div>
+          <div class="col">
+            <label for="hasta" class="form-label">Ventas Hasta</label>
+            <input id="hasta" type="date" class="form-control" [(ngModel)]="filtrosVentas.hasta" />
+          </div>
+          <div class="col">
+            <label for="minTotal" class="form-label">Total Min.</label>
+            <input
+              id="minTotal"
+              type="number"
+              class="form-control"
+              [(ngModel)]="filtrosVentas.minTotal"
+            />
+          </div>
+          <div class="col">
+            <label for="maxTotal" class="form-label">Total Max.</label>
+            <input
+              id="maxTotal"
+              type="number"
+              class="form-control"
+              [(ngModel)]="filtrosVentas.maxTotal"
+            />
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end mb-2 mx-1">
+          <button class="btn btn-outline-secondary" (click)="limpiarFiltros()">Limpiar</button>
+          <button class="btn btn-primary" (click)="aplicarFiltros()">Buscar</button>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+    <!-- Filtros de búsqueda para productos vendidos -->
+    <mat-accordion class="mx-5" *ngIf="vistaProductos">
+      <mat-expansion-panel [(expanded)]="filtrosAbiertos">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Filtros de Productos Vendidos</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="row my-3 mx-1">
+          <div class="col-md-4">
+            <label for="producto" class="form-label">Producto</label>
+            <input
+              id="producto"
+              type="text"
+              class="form-control"
+              [(ngModel)]="filtrosProductos.nombreProducto"
+              placeholder="Nombre del producto"
+            />
+          </div>
+          <div class="col-md-4">
+            <label for="desde" class="form-label">Desde</label>
+            <input
+              id="desde"
+              type="date"
+              class="form-control"
+              [(ngModel)]="filtrosProductos.desde"
+            />
+          </div>
+          <div class="col-md-4">
+            <label for="hasta" class="form-label">Hasta</label>
+            <input
+              id="hasta"
+              type="date"
+              class="form-control"
+              [(ngModel)]="filtrosProductos.hasta"
+            />
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 justify-content-end mb-2 mx-1">
+          <button class="btn btn-outline-secondary" (click)="limpiarFiltrosProductos()">
+            Limpiar
+          </button>
+          <button class="btn btn-primary" (click)="aplicarFiltrosProductos()">Buscar</button>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+
+  <!-- Botones superiores -->
+  <div class="d-flex align-items-center justify-content-between mb-3 mt-4 px-3">
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-primary btn-sm" (click)="abrirModalCrear()">
+        Registrar Venta
+      </button>
+
+      <button class="btn btn-outline-dark btn-sm" (click)="alternarVista()">
+        <i class="bi" [ngClass]="vistaProductos ? 'bi-receipt' : 'bi-box-seam'"></i>
+        {{ vistaProductos ? 'Ver Ventas' : 'Ver Productos' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- === Tabla principal === -->
+  <div class="container mt-3">
+    <!-- Vista de ventas -->
+    <h2 class="text-center flex-grow-1">
+      {{ vistaProductos ? 'Productos Vendidos' : 'Registro de Ventas' }}
+    </h2>
+    <div *ngIf="!vistaProductos">
+      <div class="badge bg-success fs-6 p-3 shadow-sm">
+        <i class="bi bi-cash-stack me-1"></i>
+        Total: {{ totalVentasEnTabla | currency : '$ ' : 'symbol' : '1.0-0' }}
+      </div>
+      <div class="d-flex justify-content-end mb-3"></div>
+      <div class="table-responsive shadow-sm rounded">
+        <table class="table table-hover align-middle border text-center">
+          <thead class="table-dark">
+            <tr>
+              <th (click)="ordenarPor('fecha')" style="cursor: pointer">
+                Fecha
+                <i
+                  *ngIf="sortColumn === 'fecha'"
+                  class="bi"
+                  [ngClass]="{
+                    'bi-caret-up-fill': sortDirection === 'asc',
+                    'bi-caret-down-fill': sortDirection === 'desc'
+                  }"
+                ></i>
+              </th>
+              <th (click)="ordenarPor('total')" style="cursor: pointer">
+                Total
+                <i
+                  *ngIf="sortColumn === 'total'"
+                  class="bi"
+                  [ngClass]="{
+                    'bi-caret-up-fill': sortDirection === 'asc',
+                    'bi-caret-down-fill': sortDirection === 'desc'
+                  }"
+                ></i>
+              </th>
+              <th (click)="ordenarPor('metodoPago')" style="cursor: pointer">
+                Método de Pago
+                <i
+                  *ngIf="sortColumn === 'metodoPago'"
+                  class="bi"
+                  [ngClass]="{
+                    'bi-caret-up-fill': sortDirection === 'asc',
+                    'bi-caret-down-fill': sortDirection === 'desc'
+                  }"
+                ></i>
+              </th>
+              <th>Opciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let venta of ventas">
+              <td>{{ venta.fecha | date : 'dd/MM/yyyy, h:mm a' }}</td>
+              <td>{{ venta.total | currency : '$ ' : 'symbol' : '1.0-0' }}</td>
+              <td>{{ venta.metodoPago }}</td>
+              <td>
+                <button
+                  class="btn btn-outline-warning btn-sm me-2"
+                  title="Editar"
+                  (click)="abrirModalEditar(venta)"
+                >
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-danger btn-sm"
+                  title="Eliminar"
+                  data-bs-toggle="modal"
+                  data-bs-target="#confirmarEliminarVentaModal"
+                  (click)="ventaAEliminar = venta"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <mat-paginator
+          [length]="totalElementos"
+          [pageSize]="size"
+          [pageIndex]="index"
+          [pageSizeOptions]="[5, 10, 20]"
+          (page)="cambiarPagina($event)"
+        ></mat-paginator>
+      </div>
+    </div>
+
+    <!-- Vista de productos vendidos -->
+
+    <!-- Tabla de productos vendidos -->
+    <div *ngIf="vistaProductos" class="table-responsive shadow-sm rounded mt-4">
+      <table class="table table-hover align-middle text-center border">
+        <thead class="table-dark">
+          <tr>
+            <th (click)="ordenarPor('venta.fecha')" style="cursor: pointer">
+              Fecha
+              <i
+                *ngIf="sortColumnProductos === 'venta.fecha'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirectionProductos === 'asc',
+                  'bi-caret-down-fill': sortDirectionProductos === 'desc'
+                }"
+              ></i>
+            </th>
+            <th (click)="ordenarPor('producto.nombre')" style="cursor: pointer">
+              Producto
+              <i
+                *ngIf="sortColumnProductos === 'producto.nombre'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirectionProductos === 'asc',
+                  'bi-caret-down-fill': sortDirectionProductos === 'desc'
+                }"
+              ></i>
+            </th>
+            <th (click)="ordenarPor('cantidad')" style="cursor: pointer">
+              Cantidad
+              <i
+                *ngIf="sortColumnProductos === 'cantidad'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirectionProductos === 'asc',
+                  'bi-caret-down-fill': sortDirectionProductos === 'desc'
+                }"
+              ></i>
+            </th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of productosPaginados">
+            <td>{{ p.fecha | date : 'dd/MM/yyyy, h:mm a' }}</td>
+            <td>{{ p.productoNombre }}</td>
+            <td>{{ p.cantidad }}</td>
+            <td>{{ p.subtotal | currency : '$ ' : 'symbol' : '1.0-0' }}</td>
+          </tr>
+          <tr *ngIf="productosPaginados.length === 0">
+            <td colspan="4" class="text-center text-muted">No hay resultados.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <mat-paginator
+        [length]="totalProductosVendidos"
+        [pageSize]="size"
+        [pageIndex]="indexProductos"
+        [pageSizeOptions]="[5, 10, 20]"
+        (page)="cambiarPaginaProductos($event)"
+      ></mat-paginator>
+    </div>
+  </div>
+
+  <!-- Modal Registrar Venta -->
+  <div
+    class="modal fade"
+    id="ventaModal"
+    tabindex="-1"
+    aria-labelledby="ventaModalLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="ventaModalLabel">
+            {{ ventaSeleccionada ? 'Editar Venta' : 'Registrar Venta' }}
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            (click)="cerrarModalVenta()"
+          ></button>
+        </div>
+
+        <div class="modal-body">
+          <form [formGroup]="formularioVenta">
+            <div class="mb-3">
+              <label for="metodoPago" class="form-label">Método de Pago</label>
+              <select id="metodoPago" class="form-select" formControlName="metodoPago">
+                <option *ngFor="let metodo of metodosPago" [value]="metodo">
+                  {{ metodo }}
+                </option>
+              </select>
+            </div>
+
+            <div class="table-responsive mt-4">
+              <div class="d-flex justify-content-end my-2">
+                <button
+                  type="button"
+                  class="btn btn-outline-success btn-sm"
+                  (click)="agregarDetalle()"
+                >
+                  <i class="bi bi-plus-circle"></i> Agregar Producto
+                </button>
+              </div>
+              <table class="table table-bordered align-middle text-center">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Venta</th>
+                    <th>Subtotal</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody formArrayName="detalles">
+                  <tr *ngFor="let detalle of detalles.controls; let i = index" [formGroupName]="i">
+                    <td>
+                      <input
+                        type="text"
+                        class="form-control"
+                        placeholder="Buscar producto"
+                        [matAutocomplete]="auto"
+                        [formControlName]="'productoNombre'"
+                        (input)="filtrarProductos(i)"
+                      />
+                      <mat-autocomplete
+                        #auto="matAutocomplete"
+                        (optionSelected)="seleccionarProducto($event, i)"
+                      >
+                        <mat-option
+                          *ngFor="let prod of productosFiltrados[i]"
+                          [value]="prod.nombre"
+                        >
+                          {{ prod.nombre }}
+                        </mat-option>
+                      </mat-autocomplete>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        class="form-control"
+                        formControlName="cantidad"
+                        placeholder="Cantidad"
+                        min="1"
+                      />
+                    </td>
+                    <td>
+                      {{
+                        obtenerPrecioProducto(detalle.get('productoId')?.value)
+                          | currency : '$ ' : 'symbol' : '1.0-0'
+                      }}
+                    </td>
+                    <td>
+                      {{ obtenerSubtotal(detalle) | currency : '$ ' : 'symbol' : '1.0-0' }}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm"
+                        (click)="eliminarDetalle(i)"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer justify-content-between">
+          <div>
+            <strong>Total:</strong>
+            <span class="fs-5">{{ totalModalVenta | currency : ' $' : 'symbol' : '1.0-0' }}</span>
+          </div>
+          <div>
+            <button class="btn btn-secondary" (click)="cerrarModalVenta()">Cancelar</button>
+            <button
+              class="btn btn-success ms-2"
+              (click)="guardarVenta()"
+              [disabled]="formularioVenta.invalid || detalles.length === 0"
+            >
+              Guardar Venta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmar Eliminación Venta -->
+  <div
+    class="modal fade"
+    id="confirmarEliminarVentaModal"
+    tabindex="-1"
+    aria-labelledby="confirmarEliminarVentaLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="confirmarEliminarVentaLabel">Confirmar eliminación</h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Cerrar"
+            (click)="cancelarEliminarVenta()"
+          ></button>
+        </div>
+
+        <div class="modal-body text-center">
+          <i class="bi bi-exclamation-triangle-fill text-warning fs-1 mb-3"></i>
+          <p class="fs-5">
+            ¿Estás seguro de que deseas eliminar la venta del
+            <strong>{{ ventaAEliminar?.fecha | date : 'dd/MM/yyyy, h:mm a' }}</strong> con total
+            <strong>{{ ventaAEliminar?.total | currency : 'COP' : 'symbol' : '1.0-0' }}</strong>?
+          </p>
+        </div>
+
+        <div class="modal-footer justify-content-center">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+            (click)="cancelarEliminarVenta()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            data-bs-dismiss="modal"
+            (click)="confirmarEliminarVenta()"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

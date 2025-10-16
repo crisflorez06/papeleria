@@ -86,5 +86,11 @@ public class VentaController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/{ventaId}")
+    public ResponseEntity<Void> eliminarVenta(@PathVariable Long ventaId) {
+        ventaService.eliminarVenta(ventaId);
+        return ResponseEntity.noContent().build();
+    }
+
 
 }

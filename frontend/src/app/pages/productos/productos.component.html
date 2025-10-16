@@ -1,0 +1,471 @@
+<div class="row">
+  <!-- Filtros de búsqueda -->
+  <div>
+    <mat-accordion class="mx-5">
+      <mat-expansion-panel [(expanded)]="filtrosAbiertos">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Filtros de búsqueda</mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <!-- Fila 1 -->
+        <div class="row my-3 mx-1">
+          <div class="col">
+            <label for="nombre" class="form-label">Nombre</label>
+            <input
+              id="nombre"
+              type="text"
+              class="form-control"
+              placeholder="Ingrese el nombre del producto"
+              [(ngModel)]="filtros.nombre"
+              name="nombre"
+            />
+          </div>
+
+          <div class="col">
+            <label for="categoria" class="form-label">Categoría</label>
+            <select
+              id="categoria"
+              class="form-select"
+              [(ngModel)]="filtros.categoria"
+              name="categoria"
+            >
+              <option [ngValue]="null">Todos</option>
+              <option *ngFor="let categoria of categoriasProductos" [value]="categoria">
+                {{ categoria }}
+              </option>
+            </select>
+          </div>
+          <div class="col">
+            <label for="estado" class="form-label">Estado del registro</label>
+            <select id="estado" class="form-select" [(ngModel)]="filtros.estado" name="estado">
+              <option [ngValue]="true">Activo</option>
+              <option [ngValue]="false">Inactivo</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Acciones del panel -->
+        <div class="d-flex gap-2 justify-content-end mb-2 mx-1">
+          <button class="btn btn-outline-secondary" (click)="limpiarFiltros()">Limpiar</button>
+          <button class="btn btn-primary" (click)="aplicarFiltros()">Buscar</button>
+        </div>
+      </mat-expansion-panel>
+    </mat-accordion>
+  </div>
+
+  <!-- productos -->
+  <div class="d-flex align-items-center mb-2 mt-3">
+    <button
+      type="button"
+      class="btn btn-outline-primary btn-sm"
+      data-bs-toggle="modal"
+      data-bs-target="#productoModal"
+    >
+      Crear Producto
+    </button>
+  </div>
+
+  <!-- Tabla de productos -->
+  <div class="container mt-4">
+    <h2 class="mb-3 text-center">Registro de productos</h2>
+
+    <div class="table-responsive shadow-sm rounded">
+      <table class="table table-hover align-middle border text-center">
+        <thead class="table-dark">
+          <tr>
+            <th
+              scope="col"
+              class="border-end"
+              (click)="ordenarPor('nombre')"
+              style="cursor: pointer"
+            >
+              Nombre
+              <i
+                *ngIf="sortColumn === 'nombre'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirection === 'asc',
+                  'bi-caret-down-fill': sortDirection === 'desc'
+                }"
+              ></i>
+            </th>
+
+            <th
+              scope="col"
+              class="border-end"
+              (click)="ordenarPor('categoria')"
+              style="cursor: pointer"
+            >
+              Categoría
+              <i
+                *ngIf="sortColumn === 'categoria'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirection === 'asc',
+                  'bi-caret-down-fill': sortDirection === 'desc'
+                }"
+              ></i>
+            </th>
+
+            <th
+              scope="col"
+              class="border-end"
+              (click)="ordenarPor('precioCompra')"
+              style="cursor: pointer"
+            >
+              Precio Compra
+              <i
+                *ngIf="sortColumn === 'precioCompra'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirection === 'asc',
+                  'bi-caret-down-fill': sortDirection === 'desc'
+                }"
+              ></i>
+            </th>
+
+            <th
+              scope="col"
+              class="border-end"
+              (click)="ordenarPor('precioVenta')"
+              style="cursor: pointer"
+            >
+              Precio Venta
+              <i
+                *ngIf="sortColumn === 'precioVenta'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirection === 'asc',
+                  'bi-caret-down-fill': sortDirection === 'desc'
+                }"
+              ></i>
+            </th>
+
+            <th
+              scope="col"
+              class="border-end"
+              (click)="ordenarPor('stock')"
+              style="cursor: pointer"
+            >
+              Cantidad
+              <i
+                *ngIf="sortColumn === 'stock'"
+                class="bi"
+                [ngClass]="{
+                  'bi-caret-up-fill': sortDirection === 'asc',
+                  'bi-caret-down-fill': sortDirection === 'desc'
+                }"
+              ></i>
+            </th>
+
+            <th scope="col" class="border-end">Descripción</th>
+            <th scope="col" class="border-end">Opciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let producto of productos">
+            <td class="border-end">{{ producto.nombre }}</td>
+            <td class="border-end">{{ producto.categoria }}</td>
+            <td class="border-end">{{ producto.precioCompra }}</td>
+            <td class="border-end">{{ producto.precioVenta }}</td>
+            <td class="border-end">{{ producto.stock }}</td>
+            <td class="border-end">{{ producto.descripcion }}</td>
+            <td>
+              <button
+                type="button"
+                data-bs-toggle="modal"
+                data-bs-target="#productoModal"
+                class="btn btn-outline-warning btn-sm me-2"
+                (click)="editarProducto(producto)"
+                title="Editar"
+              >
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <!-- Agregar stock -->
+              <button
+                type="button"
+                class="btn btn-outline-success btn-sm me-2"
+                data-bs-toggle="modal"
+                data-bs-target="#agregarStockModal"
+                (click)="abrirModalAgregarStock(producto)"
+                title="Agregar stock"
+              >
+                <i class="bi bi-plus-circle"></i>
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm"
+                [ngClass]="producto.estado ? 'btn-outline-danger' : 'btn-outline-success'"
+                data-bs-toggle="modal"
+                data-bs-target="#confirmarEliminarModal"
+                (click)="productoAEliminar = producto"
+                [title]="producto.estado ? 'Anular producto' : 'Reactivar producto'"
+              >
+                <i
+                  class="bi"
+                  [ngClass]="
+                    producto.estado ? 'bi-x-circle text-danger' : 'bi-arrow-repeat text-success'
+                  "
+                ></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <mat-paginator
+        [length]="totalElementos"
+        [pageSize]="size"
+        [pageIndex]="index"
+        [pageSizeOptions]="[5, 10, 20]"
+        (page)="cambiarPagina($event)"
+      ></mat-paginator>
+    </div>
+  </div>
+
+  <!-- Modal de producto -->
+  <div
+    class="modal fade"
+    id="productoModal"
+    tabindex="-1"
+    aria-labelledby="productosLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!-- Encabezado -->
+        <div class="modal-header">
+          <h5 class="modal-title" id="productosLabel">
+            {{
+              modoCreacionProducto
+                ? productoSeleccionado
+                  ? 'Editar Producto'
+                  : 'Registrar Nuevo Producto'
+                : 'Detalle Producto'
+            }}
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            (click)="ocultarFormularioProducto()"
+          ></button>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="modal-body">
+          <!-- Formulario (solo si estamos en modo creación/edición) -->
+          <div>
+            <form [formGroup]="formularioProducto" (ngSubmit)="guardarProducto()">
+              <!-- Nombre -->
+              <div class="mb-3">
+                <label for="nombreProducto" class="form-label">Nombre</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="nombreProducto"
+                    class="form-control"
+                    formControlName="nombre"
+                    placeholder="Nombre del producto"
+                  />
+                </div>
+              </div>
+              <!-- Categoría -->
+              <div class="mb-3">
+                <label for="categoria" class="form-label">Categoría</label>
+                <div class="input-group">
+                  <select
+                    id="categoria"
+                    class="form-select"
+                    formControlName="categoria"
+                    name="categoria"
+                  >
+                    <option [ngValue]="null">Seleccionar</option>
+                    <option *ngFor="let categoria of categoriasProductos" [value]="categoria">
+                      {{ categoria }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Precio de compra -->
+              <div class="mb-3">
+                <label for="precioCompra" class="form-label">Precio de compra</label>
+                <div class="input-group">
+                  <input
+                    type="number"
+                    id="precioCompra"
+                    class="form-control"
+                    formControlName="precioCompra"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <!-- Precio de venta -->
+              <div class="mb-3">
+                <label for="precioVenta" class="form-label">Precio de venta</label>
+                <div class="input-group">
+                  <input
+                    type="number"
+                    id="precioVenta"
+                    class="form-control"
+                    formControlName="precioVenta"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <!-- Stock -->
+              <div class="mb-3" *ngIf="productoSeleccionado === null">
+                <label for="stock" class="form-label">Stock</label>
+                <div class="input-group">
+                  <input
+                    type="number"
+                    id="stock"
+                    class="form-control"
+                    formControlName="stock"
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              </div>
+              <!-- Descripción -->
+              <div class="mb-3">
+                <label for="descripcionProducto" class="form-label">Descripción</label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="descripcionProducto"
+                    class="form-control"
+                    formControlName="descripcion"
+                    placeholder="Descripción del producto"
+                  />
+                </div>
+              </div>
+
+              <!-- Botón -->
+              <div class="text-end">
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  data-bs-dismiss="modal"
+                  [disabled]="formularioProducto.invalid"
+                >
+                  Guardar producto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Agregar Stock -->
+  <div
+    class="modal fade"
+    id="agregarStockModal"
+    tabindex="-1"
+    aria-labelledby="agregarStockLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <!-- Encabezado -->
+        <div class="modal-header">
+          <h5 class="modal-title" id="agregarStockLabel">
+            Agregar Stock — {{ productoParaSumar?.nombre }}
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            (click)="cerrarModalAgregarStock()"
+          ></button>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="modal-body">
+          <label for="cantidadAgregar" class="form-label">Cantidad a agregar</label>
+          <input
+            type="number"
+            id="cantidadAgregar"
+            class="form-control"
+            [(ngModel)]="cantidadAgregar"
+            placeholder="0"
+            min="1"
+          />
+        </div>
+
+        <!-- Pie -->
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-success"
+            data-bs-dismiss="modal"
+            (click)="confirmarAgregarStock()"
+          >
+            Agregar Cantidad
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Confirmar Eliminación -->
+  <div
+    class="modal fade"
+    id="confirmarEliminarModal"
+    tabindex="-1"
+    aria-labelledby="confirmarEliminarLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="confirmarEliminarLabel">Confirmar acción</h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Cerrar"
+          ></button>
+        </div>
+
+        <div class="modal-body text-center">
+          <i class="bi bi-exclamation-triangle-fill text-warning fs-1 mb-3"></i>
+          <p class="fs-5">
+            ¿Estás seguro de que deseas
+            <strong>{{ productoAEliminar?.estado ? 'anular' : 'reactivar' }}</strong>
+            el producto
+            <strong>{{ productoAEliminar?.nombre }}</strong
+            >?
+          </p>
+        </div>
+
+        <div class="modal-footer justify-content-center">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn"
+            [ngClass]="productoAEliminar?.estado ? 'btn-danger' : 'btn-success'"
+            data-bs-dismiss="modal"
+            (click)="confirmarEliminacion()"
+          >
+            {{ productoAEliminar?.estado ? 'Anular' : 'Reactivar' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

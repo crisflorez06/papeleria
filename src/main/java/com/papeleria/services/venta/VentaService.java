@@ -19,7 +19,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -62,7 +64,8 @@ public class VentaService {
                 .where(metodoPagoEquals(metodoPago))
                 .and(fechaBetween(desde, hasta))
                 .and(totalMin(minTotal))
-                .and(totalMax(maxTotal));
+                .and(totalMax(maxTotal))
+                .and(totalMayorQueCero());
 
         Page<VentaResponse> pageDeVentas = ventaRepository.findAll(spec, pageable).map(ventaMapper::toResponse);
 
@@ -193,6 +196,35 @@ public class VentaService {
         ventaExistente.setMetodoPago(request.getMetodoPago());
 
         return ventaRepository.save(ventaExistente);
+    }
+
+    @Transactional
+    public void eliminarVenta(Long ventaId) {
+        Venta ventaExistente = ventaRepository.findById(ventaId)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + ventaId));
+
+        List<Producto> productosParaActualizar = new ArrayList<>();
+        Set<Long> productosProcesados = new HashSet<>();
+
+        for (DetalleVenta detalle : ventaExistente.getDetalles()) {
+            Producto producto = detalle.getProducto();
+            producto.setStock(producto.getStock() + detalle.getCantidad());
+
+            if (producto.getId() != null && productosProcesados.add(producto.getId())) {
+                productosParaActualizar.add(producto);
+            } else if (producto.getId() == null) {
+                productosParaActualizar.add(producto);
+            }
+        }
+
+        if (!productosParaActualizar.isEmpty()) {
+            productoRepository.saveAll(productosParaActualizar);
+        }
+
+        ventaExistente.getDetalles().clear();
+        ventaExistente.setTotal(BigDecimal.ZERO);
+
+        ventaRepository.save(ventaExistente);
     }
 
 
