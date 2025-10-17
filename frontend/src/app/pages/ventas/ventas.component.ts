@@ -1,9 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import * as bootstrap from 'bootstrap';
-import { VentaService } from '../../services/venta.service';
-import { VentaRequest, VentaResponse } from '../../models/venta.model';
-import { MensajeService } from '../../services/mensaje.service';
 import {
   FormArray,
   FormBuilder,
@@ -18,6 +15,10 @@ import { DetalleVentaResponse } from '../../models/detalle-venta.model';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { ApiErrorService } from '../../core/services/api-error.service';
+import { MensajeService } from '../../services/mensaje.service';
+import { VentaRequest, VentaResponse } from '../../models/venta.model';
+import { VentaService } from '../../services/venta.service';
 
 @Component({
   selector: 'app-ventas',
@@ -40,6 +41,7 @@ export class VentasComponent implements OnInit {
   private mensajeService = inject(MensajeService);
   private filtroService = inject(FiltroService);
   private fb = inject(FormBuilder);
+  private apiErrorService = inject(ApiErrorService);
 
   // Datos generales
   public ventas: VentaResponse[] = [];
@@ -152,8 +154,10 @@ export class VentasComponent implements OnInit {
           this.productosPaginados = page.content;
           this.totalProductosVendidos = page.totalElements;
         },
-        error: () => {
-          this.mensajeService.error('Error al cargar los productos vendidos.');
+        error: (error) => {
+          this.apiErrorService.handle(error, {
+            contextMessage: 'Error al cargar los productos vendidos.',
+          });
           this.productosPaginados = [];
           this.totalProductosVendidos = 0;
         },
@@ -186,8 +190,10 @@ export class VentasComponent implements OnInit {
           this.totalElementos = page.ventas.totalElements;
           this.totalVentasEnTabla = page.totalGeneral;
         },
-        error: () => {
-          this.mensajeService.error('Error al cargar las ventas.');
+        error: (error) => {
+          this.apiErrorService.handle(error, {
+            contextMessage: 'Error al cargar las ventas.',
+          });
           this.ventas = [];
           this.totalElementos = 0;
           this.totalVentasEnTabla = 0;
@@ -220,6 +226,8 @@ export class VentasComponent implements OnInit {
       return;
     }
 
+    this.apiErrorService.clearFormErrors(this.formularioVenta);
+
     const ventaRequest: VentaRequest = this.formularioVenta.getRawValue() as VentaRequest;
 
     const operation = this.ventaSeleccionada
@@ -241,8 +249,10 @@ export class VentasComponent implements OnInit {
         }
       },
       error: (err) => {
-        this.mensajeService.error('Error al guardar la venta.');
-        console.error(err);
+        this.apiErrorService.handle(err, {
+          form: this.formularioVenta,
+          contextMessage: 'Error al guardar la venta.',
+        });
       },
     });
   }
@@ -253,6 +263,7 @@ export class VentasComponent implements OnInit {
     this.detalles.clear();
     this.formularioVenta.reset({ metodoPago: 'Efectivo' });
     this.agregarDetalle(); // Agrega una fila por defecto
+    this.apiErrorService.clearFormErrors(this.formularioVenta);
     this.abrirModalVenta();
   }
 
@@ -261,6 +272,7 @@ export class VentasComponent implements OnInit {
     this.ventaSeleccionada = venta;
     this.detalles.clear();
     this.formularioVenta.patchValue({ metodoPago: venta.metodoPago });
+    this.apiErrorService.clearFormErrors(this.formularioVenta);
 
     this.ventaService.obtenerDetallesPorVenta(venta.id).subscribe({
       next: (detalles) => {
@@ -279,8 +291,10 @@ export class VentasComponent implements OnInit {
         }
         this.abrirModalVenta();
       },
-      error: () => {
-        this.mensajeService.error('Error al cargar los detalles para editar.');
+      error: (error) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al cargar los detalles para editar.',
+        });
       },
     });
   }
@@ -302,8 +316,10 @@ export class VentasComponent implements OnInit {
         }
         this.ventaAEliminar = null;
       },
-      error: () => {
-        this.mensajeService.error('Error al eliminar la venta.');
+      error: (error) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al eliminar la venta.',
+        });
         this.ventaAEliminar = null;
       },
     });
@@ -347,6 +363,7 @@ export class VentasComponent implements OnInit {
     this.formularioVenta.reset({
       metodoPago: 'Efectivo',
     });
+    this.apiErrorService.clearFormErrors(this.formularioVenta);
     this.ventaSeleccionada = null;
   }
 

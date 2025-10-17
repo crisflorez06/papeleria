@@ -11,12 +11,13 @@ import {
 } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
 
-import { ProductoService } from '../../services/producto.service';
-import { MensajeService } from '../../services/mensaje.service';
 import { ProductoRequest, ProductoResponse } from '../../models/producto.model';
 import { Page } from '../../core/types/page';
 import { FiltroService } from '../../services/filtro.service';
 import { take } from 'rxjs';
+import { MensajeService } from '../../services/mensaje.service';
+import { ProductoService } from '../../services/producto.service';
+import { ApiErrorService } from '../../core/services/api-error.service';
 
 @Component({
   selector: 'app-productos',
@@ -28,6 +29,7 @@ import { take } from 'rxjs';
 export class ProductosComponent implements OnInit {
   private productoService = inject(ProductoService);
   private mensajeService = inject(MensajeService);
+  private apiErrorService = inject(ApiErrorService);
   public productos: ProductoResponse[] = [];
   modoCreacionProducto = false;
   public totalElementos = 0;
@@ -84,6 +86,13 @@ export class ProductosComponent implements OnInit {
       });
   }
 
+  abrirModalCrearProducto(): void {
+    this.productoSeleccionado = null;
+    this.modoCreacionProducto = true;
+    this.formularioProducto.reset();
+    this.apiErrorService.clearFormErrors(this.formularioProducto);
+  }
+
   ordenarPor(columna: string): void {
     if (this.sortColumn === columna) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -102,8 +111,10 @@ export class ProductosComponent implements OnInit {
           this.productos = page.content;
           this.totalElementos = page.totalElements;
         },
-        error: () => {
-          this.mensajeService.error('Error al cargar los productos.');
+        error: (error) => {
+          this.apiErrorService.handle(error, {
+            contextMessage: 'Error al cargar los productos.',
+          });
           this.productos = [];
           this.totalElementos = 0;
         },
@@ -136,6 +147,8 @@ export class ProductosComponent implements OnInit {
       return;
     }
 
+    this.apiErrorService.clearFormErrors(this.formularioProducto);
+
     //logica por si es edicion o creacion
     if (this.productoSeleccionado) {
       const productoActualizado: ProductoResponse = {
@@ -145,10 +158,14 @@ export class ProductosComponent implements OnInit {
       this.productoService.actualizar(productoActualizado.id!, productoActualizado).subscribe({
         next: () => {
           this.mensajeService.success('Producto actualizado con éxito');
-          this.ocultarFormularioProducto();
+          this.reiniciarFormularioProducto();
+          this.cargarProductos();
         },
-        error: () => {
-          this.mensajeService.error('Error al actualizar el producto');
+        error: (error) => {
+          this.apiErrorService.handle(error, {
+            form: this.formularioProducto,
+            contextMessage: 'Error al actualizar el producto.',
+          });
         },
       });
     } else {
@@ -156,16 +173,21 @@ export class ProductosComponent implements OnInit {
       this.productoService.crearProducto(this.formularioProducto.value).subscribe({
         next: () => {
           this.mensajeService.success('Producto registrado con éxito');
-          this.ocultarFormularioProducto(); // Vuelve a la vista de tabla
+          this.reiniciarFormularioProducto();
+          this.cargarProductos();
         },
         error: (error) => {
-          this.mensajeService.error('Error al registrar el producto: ' + error.message);
+          this.apiErrorService.handle(error, {
+            form: this.formularioProducto,
+            contextMessage: 'Error al registrar el producto.',
+          });
         },
       });
     }
   }
 
   editarProducto(producto: ProductoResponse) {
+    this.apiErrorService.clearFormErrors(this.formularioProducto);
     this.productoSeleccionado = producto;
     this.modoCreacionProducto = true;
     this.formularioProducto.patchValue({
@@ -184,8 +206,10 @@ export class ProductosComponent implements OnInit {
         this.mensajeService.success('Producto eliminado con éxito');
         this.cargarProductos();
       },
-      error: () => {
-        this.mensajeService.error('Error al eliminar el producto');
+      error: (error) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al eliminar el producto.',
+        });
       },
     });
   }
@@ -194,7 +218,9 @@ export class ProductosComponent implements OnInit {
     this.modoCreacionProducto = false;
     this.productoSeleccionado = null;
     this.formularioProducto.reset();
+    this.apiErrorService.clearFormErrors(this.formularioProducto);
     this.cargarProductos();
+    this.cerrarModalProducto();
   }
 
   abrirModalAgregarStock(producto: ProductoResponse) {
@@ -214,8 +240,10 @@ export class ProductosComponent implements OnInit {
         this.cantidadAgregar = null;
         this.cargarProductos();
       },
-      error: () => {
-        this.mensajeService.error('Error al actualizar el stock.');
+      error: (error) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al actualizar el stock.',
+        });
       },
     });
   }
@@ -238,5 +266,19 @@ export class ProductosComponent implements OnInit {
 
     this.cambiarEstado(this.productoAEliminar);
     this.productoAEliminar = null;
+  }
+
+  private cerrarModalProducto(): void {
+    const modal = document.getElementById('productoModal');
+    if (modal) {
+      bootstrap.Modal.getOrCreateInstance(modal).hide();
+    }
+  }
+
+  private reiniciarFormularioProducto(): void {
+    this.productoSeleccionado = null;
+    this.modoCreacionProducto = true;
+    this.formularioProducto.reset();
+    this.apiErrorService.clearFormErrors(this.formularioProducto);
   }
 }

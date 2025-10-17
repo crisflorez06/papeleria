@@ -73,14 +73,14 @@ public class VentaController {
     }
 
     @PostMapping
-    public ResponseEntity<VentaResponse> crearVenta(@RequestBody VentaRequest request) {
+    public ResponseEntity<VentaResponse> crearVenta(@Valid @RequestBody VentaRequest request) {
         Venta venta = ventaService.crearVenta(request);
         VentaResponse response = ventaMapper.toResponse(venta);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{ventaId}")
-    public ResponseEntity<VentaResponse> actualizarVenta(@PathVariable Long ventaId, @RequestBody VentaRequest request) {
+    public ResponseEntity<VentaResponse> actualizarVenta(@PathVariable Long ventaId, @Valid @RequestBody VentaRequest request) {
         Venta ventaActualizada = ventaService.actualizarVenta(ventaId, request);
         VentaResponse response = ventaMapper.toResponse(ventaActualizada);
         return ResponseEntity.ok(response);

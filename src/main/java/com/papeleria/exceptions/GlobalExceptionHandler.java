@@ -1,9 +1,7 @@
 package com.papeleria.exceptions;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
-import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,36 +13,45 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ApiError> handleEntityNotFound(EntityNotFoundException ex, HttpServletRequest request) {
-        return buildResponseEntity(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+    public ResponseEntity<ErrorResponse> handleEntityNotFound(EntityNotFoundException ex) {
+        return buildResponseEntity(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler({IllegalArgumentException.class, ConstraintViolationException.class})
-    public ResponseEntity<ApiError> handleBadRequest(Exception ex, HttpServletRequest request) {
-        return buildResponseEntity(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+    public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex) {
+        return buildResponseEntity(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .map(error -> "Error en " + formatFieldName(error.getField()) + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining(", "));
-        return buildResponseEntity(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
+        return buildResponseEntity(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest request) {
-        return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno en el servidor", request.getRequestURI());
+    public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {
+        return buildResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno en el servidor");
     }
 
-    private ResponseEntity<ApiError> buildResponseEntity(HttpStatus status, String message, String path) {
-        ApiError apiError = ApiError.builder()
-                .timestamp(LocalDateTime.now())
-                .status(status.value())
-                .error(status.getReasonPhrase())
-                .message(message)
-                .path(path)
+    private ResponseEntity<ErrorResponse> buildResponseEntity(HttpStatus status, String message) {
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .error((message == null || message.isBlank()) ? status.getReasonPhrase() : message)
                 .build();
-        return ResponseEntity.status(status).body(apiError);
+        return ResponseEntity.status(status).body(errorResponse);
+    }
+
+    private String formatFieldName(String field) {
+        if (field == null || field.isBlank()) {
+            return "el campo";
+        }
+        String normalized = field;
+        int lastDot = normalized.lastIndexOf('.');
+        if (lastDot >= 0 && lastDot < normalized.length() - 1) {
+            normalized = normalized.substring(lastDot + 1);
+        }
+        normalized = normalized.replaceAll("\\[\\d+\\]", "");
+        return normalized;
     }
 }

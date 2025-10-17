@@ -1,10 +1,11 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReporteService } from '../../services/reporte.service';
 import { MensajeService } from '../../services/mensaje.service';
 import { ReporteGeneralResponse } from '../../models/reporte.model';
 import { ProductoResponse } from '../../models/producto.model';
+import { ReporteService } from '../../services/reporte.service';
+import { ApiErrorService } from '../../core/services/api-error.service';
 
 @Component({
   selector: 'app-reportes',
@@ -16,6 +17,7 @@ import { ProductoResponse } from '../../models/producto.model';
 export class ReportesComponent implements OnInit {
   private reporteService = inject(ReporteService);
   private mensajeService = inject(MensajeService);
+  private apiErrorService = inject(ApiErrorService);
 
   reporteGeneral: ReporteGeneralResponse | null = null;
   productosStockBajo: ProductoResponse[] = [];
@@ -28,6 +30,7 @@ export class ReportesComponent implements OnInit {
     const hoy = new Date().toISOString().split('T')[0];
     this.fechaInicio = hoy;
     this.fechaFin = hoy;
+    this.cargarProductosStockBajo();
   }
 
   generarReportes(): void {
@@ -44,15 +47,24 @@ export class ReportesComponent implements OnInit {
         this.cargando = false;
       },
 
-      error: () => {
-        this.mensajeService.error('Error al cargar el reporte general.');
+      error: (error) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al cargar el reporte general.',
+        });
         this.cargando = false;
       },
     });
 
+    this.cargarProductosStockBajo();
+  }
+
+  private cargarProductosStockBajo(): void {
     this.reporteService.getProductosConStockBajo().subscribe({
       next: (res) => (this.productosStockBajo = res),
-      error: () => this.mensajeService.error('Error al cargar el stock bajo.'),
+      error: (error) =>
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al cargar el stock bajo.',
+        }),
     });
   }
 }

@@ -15,6 +15,7 @@ import org.springframework.data.jpa.domain.Specification;
 import com.papeleria.mappers.venta.VentaMapper;
 import com.papeleria.repositories.ProductoRepository;
 import com.papeleria.repositories.VentaRepository;
+import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -98,7 +99,7 @@ public class VentaService {
     public List<DetalleVentaResponse> obtenerDetallesPorVenta(Long ventaId) {
         return ventaRepository.findById(ventaId)
                 .map(Venta::getDetalles)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada"))
+                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada"))
                 .stream()
                 .map(detalleVentaMapper::toResponse)
                 .toList();
@@ -119,10 +120,10 @@ public class VentaService {
             }
 
             Producto producto = productoRepository.findById(detalleReq.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + detalleReq.getProductoId()));
+                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + detalleReq.getProductoId()));
 
             if (producto.getStock() < detalleReq.getCantidad()) {
-                throw new RuntimeException("No hay stock suficiente para el producto: " + producto.getNombre());
+                throw new IllegalArgumentException("No hay stock suficiente para el producto: " + producto.getNombre());
             }
 
             BigDecimal subtotal = producto.getPrecioVenta().multiply(BigDecimal.valueOf(detalleReq.getCantidad()));
@@ -151,7 +152,7 @@ public class VentaService {
     @Transactional
     public Venta actualizarVenta(Long ventaId, VentaRequest request) {
         Venta ventaExistente = ventaRepository.findById(ventaId)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + ventaId));
+                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada con ID: " + ventaId));
 
         List<Producto> productosParaActualizar = new ArrayList<>();
         for (DetalleVenta detalleAntiguo : ventaExistente.getDetalles()) {
@@ -165,13 +166,13 @@ public class VentaService {
 
         for (DetalleVentaRequest detalleNuevoReq : request.getDetalles()) {
             Producto producto = productoRepository.findById(detalleNuevoReq.getProductoId())
-                    .orElseThrow(() -> new RuntimeException("Producto no encontrado con ID: " + detalleNuevoReq.getProductoId()));
+                    .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con ID: " + detalleNuevoReq.getProductoId()));
 
             Producto productoEnLista = productosParaActualizar.stream()
                 .filter(p -> p.getId().equals(producto.getId())).findFirst().orElse(producto);
 
             if (productoEnLista.getStock() < detalleNuevoReq.getCantidad()) {
-                throw new RuntimeException("No hay stock suficiente para el producto: " + productoEnLista.getNombre());
+                throw new IllegalArgumentException("No hay stock suficiente para el producto: " + productoEnLista.getNombre());
             }
 
             productoEnLista.setStock(productoEnLista.getStock() - detalleNuevoReq.getCantidad());
@@ -201,7 +202,7 @@ public class VentaService {
     @Transactional
     public void eliminarVenta(Long ventaId) {
         Venta ventaExistente = ventaRepository.findById(ventaId)
-                .orElseThrow(() -> new RuntimeException("Venta no encontrada con ID: " + ventaId));
+                .orElseThrow(() -> new EntityNotFoundException("Venta no encontrada con ID: " + ventaId));
 
         List<Producto> productosParaActualizar = new ArrayList<>();
         Set<Long> productosProcesados = new HashSet<>();

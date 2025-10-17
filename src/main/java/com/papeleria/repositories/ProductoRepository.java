@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSpecificationExecutor<Producto> {
 
@@ -16,4 +17,8 @@ public interface ProductoRepository extends JpaRepository<Producto, Long>, JpaSp
 
     @Query("SELECT DISTINCT p.categoria FROM Producto p")
     List<String> findDistinctCategoria();
+
+    boolean existsByNombreIgnoreCase(String nombre);
+
+    Optional<Producto> findByNombreIgnoreCase(String nombre);
 }

@@ -60,6 +60,7 @@
       class="btn btn-outline-primary btn-sm"
       data-bs-toggle="modal"
       data-bs-target="#productoModal"
+      (click)="abrirModalCrearProducto()"
     >
       Crear Producto
     </button>
@@ -260,6 +261,13 @@
           <!-- Formulario (solo si estamos en modo creación/edición) -->
           <div>
             <form [formGroup]="formularioProducto" (ngSubmit)="guardarProducto()">
+              <div
+                class="alert alert-danger py-2"
+                role="alert"
+                *ngIf="formularioProducto.errors?.['backend'] as errorFormulario"
+              >
+                {{ errorFormulario }}
+              </div>
               <!-- Nombre -->
               <div class="mb-3">
                 <label for="nombreProducto" class="form-label">Nombre</label>
@@ -271,6 +279,12 @@
                     formControlName="nombre"
                     placeholder="Nombre del producto"
                   />
+                </div>
+                <div
+                  class="form-text text-danger"
+                  *ngIf="formularioProducto.get('nombre')?.errors?.['backend'] as errorNombre"
+                >
+                  {{ errorNombre }}
                 </div>
               </div>
               <!-- Categoría -->
@@ -289,6 +303,12 @@
                     </option>
                   </select>
                 </div>
+                <div
+                  class="form-text text-danger"
+                  *ngIf="formularioProducto.get('categoria')?.errors?.['backend'] as errorCategoria"
+                >
+                  {{ errorCategoria }}
+                </div>
               </div>
 
               <!-- Precio de compra -->
@@ -303,6 +323,14 @@
                     placeholder="0"
                     min="0"
                   />
+                </div>
+                <div
+                  class="form-text text-danger"
+                  *ngIf="
+                    formularioProducto.get('precioCompra')?.errors?.['backend'] as errorPrecioCompra
+                  "
+                >
+                  {{ errorPrecioCompra }}
                 </div>
               </div>
 
@@ -319,6 +347,14 @@
                     min="0"
                   />
                 </div>
+                <div
+                  class="form-text text-danger"
+                  *ngIf="
+                    formularioProducto.get('precioVenta')?.errors?.['backend'] as errorPrecioVenta
+                  "
+                >
+                  {{ errorPrecioVenta }}
+                </div>
               </div>
 
               <!-- Stock -->
@@ -334,6 +370,12 @@
                     min="0"
                   />
                 </div>
+                <div
+                  class="form-text text-danger"
+                  *ngIf="formularioProducto.get('stock')?.errors?.['backend'] as errorStock"
+                >
+                  {{ errorStock }}
+                </div>
               </div>
               <!-- Descripción -->
               <div class="mb-3">
@@ -347,6 +389,14 @@
                     placeholder="Descripción del producto"
                   />
                 </div>
+                <div
+                  class="form-text text-danger"
+                  *ngIf="
+                    formularioProducto.get('descripcion')?.errors?.['backend'] as errorDescripcion
+                  "
+                >
+                  {{ errorDescripcion }}
+                </div>
               </div>
 
               <!-- Botón -->
@@ -354,7 +404,6 @@
                 <button
                   type="submit"
                   class="btn btn-primary"
-                  data-bs-dismiss="modal"
                   [disabled]="formularioProducto.invalid"
                 >
                   Guardar producto

@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -50,14 +51,14 @@ public class ProductoController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductoResponse> crearProducto(@RequestBody ProductoRequest productoRequest) {
+    public ResponseEntity<ProductoResponse> crearProducto(@Valid @RequestBody ProductoRequest productoRequest) {
         Producto productoGuardado = productoService.crearProducto(productoRequest);
         ProductoResponse response = productoMapper.toResponse(productoGuardado);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductoResponse> actualizarProducto(@PathVariable Long id, @RequestBody ProductoRequest productoRequest) {
+    public ResponseEntity<ProductoResponse> actualizarProducto(@PathVariable Long id, @Valid @RequestBody ProductoRequest productoRequest) {
         Producto productoActualizado = productoService.actualizarProducto(id, productoRequest);
         ProductoResponse response = productoMapper.toResponse(productoActualizado);
         return new ResponseEntity<>(response, HttpStatus.OK);

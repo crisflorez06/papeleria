@@ -300,6 +300,13 @@
 
         <div class="modal-body">
           <form [formGroup]="formularioVenta">
+            <div
+              class="alert alert-danger py-2"
+              role="alert"
+              *ngIf="formularioVenta.errors?.['backend'] as errorFormularioVenta"
+            >
+              {{ errorFormularioVenta }}
+            </div>
             <div class="mb-3">
               <label for="metodoPago" class="form-label">Método de Pago</label>
               <select id="metodoPago" class="form-select" formControlName="metodoPago">
