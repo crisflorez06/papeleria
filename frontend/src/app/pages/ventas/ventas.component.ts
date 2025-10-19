@@ -19,6 +19,8 @@ import { ApiErrorService } from '../../core/services/api-error.service';
 import { MensajeService } from '../../services/mensaje.service';
 import { VentaRequest, VentaResponse } from '../../models/venta.model';
 import { VentaService } from '../../services/venta.service';
+import { ActualizarGastoRequest, CrearGastoRequest, Gasto } from '../../models/gasto.model';
+import { GastoService } from '../../services/gasto.service';
 
 @Component({
   selector: 'app-ventas',
@@ -42,6 +44,7 @@ export class VentasComponent implements OnInit {
   private filtroService = inject(FiltroService);
   private fb = inject(FormBuilder);
   private apiErrorService = inject(ApiErrorService);
+  private gastoService = inject(GastoService);
 
   // Datos generales
   public ventas: VentaResponse[] = [];
@@ -51,7 +54,7 @@ export class VentasComponent implements OnInit {
     totalGenerado: number;
     fecha: string;
   }[] = [];
-  public vistaProductos = false;
+  public vistaActual: 'ventas' | 'productos' | 'gastos' = 'ventas';
 
   public totalVentasEnTabla = 0;
   public totalElementos = 0;
@@ -72,6 +75,11 @@ export class VentasComponent implements OnInit {
     desde: '',
     hasta: '',
   };
+  public filtrosGastos = {
+    nombre: '',
+    desde: '',
+    hasta: '',
+  };
 
   public productosPaginados: DetalleVentaResponse[] = [];
   public totalProductosVendidos = 0;
@@ -88,10 +96,22 @@ export class VentasComponent implements OnInit {
   public totalModalVenta = 0;
   public ventaSeleccionada: VentaResponse | null = null;
   public ventaAEliminar: VentaResponse | null = null;
+  public gastos: Gasto[] = [];
+  public cargandoGastos = false;
+  public creandoGasto = false;
+  public gastoSeleccionado: Gasto | null = null;
+  public totalGastos = 0;
+  public gastoAEliminar: Gasto | null = null;
+  public eliminandoGasto = false;
 
   formularioVenta = this.fb.nonNullable.group({
     metodoPago: ['Efectivo', Validators.required],
     detalles: this.fb.array(this.crearDetalleArray()),
+  });
+
+  formularioGasto = this.fb.group({
+    monto: [null as number | null, [Validators.required, Validators.min(1)]],
+    descripcion: ['', [Validators.required, Validators.maxLength(500)]],
   });
 
   private crearDetalleArray() {
@@ -130,14 +150,163 @@ export class VentasComponent implements OnInit {
     );
   }
 
-  // Cambio de vista
-  alternarVista(): void {
-    this.vistaProductos = !this.vistaProductos;
-    if (this.vistaProductos) {
-      this.cargarProductosVendidos();
-    } else {
+  public mostrarVentas(): void {
+    if (this.vistaActual !== 'ventas') {
+      this.vistaActual = 'ventas';
       this.cargarVentas();
     }
+  }
+
+  public mostrarProductosVendidos(): void {
+    if (this.vistaActual !== 'productos') {
+      this.vistaActual = 'productos';
+      this.cargarProductosVendidos();
+    }
+  }
+
+  public mostrarGastos(): void {
+    this.vistaActual = 'gastos';
+    this.formularioGasto.reset({ monto: null, descripcion: '' });
+    this.apiErrorService.clearFormErrors(this.formularioGasto);
+    this.gastoSeleccionado = null;
+    this.gastoAEliminar = null;
+    this.eliminandoGasto = false;
+    this.cargarGastos();
+  }
+
+  private cargarGastos(): void {
+    this.cargandoGastos = true;
+    const filtros = {
+      nombre: this.filtrosGastos.nombre?.trim() ?? '',
+      desde: this.filtrosGastos.desde,
+      hasta: this.filtrosGastos.hasta,
+    };
+    this.gastoService.listar(filtros).subscribe({
+      next: (gastos: Gasto[]) => {
+        this.gastos = gastos;
+        this.totalGastos = gastos.reduce((total, gasto) => total + Number(gasto.monto ?? 0), 0);
+        this.cargandoGastos = false;
+      },
+      error: (error: unknown) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al cargar los gastos.',
+        });
+        this.gastos = [];
+        this.totalGastos = 0;
+        this.cargandoGastos = false;
+      },
+    });
+  }
+
+  private mostrarModalGasto(): void {
+    const modalEl = document.getElementById('gastoModal');
+    if (modalEl) {
+      bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+  }
+
+  private cerrarModalGasto(): void {
+    const modalEl = document.getElementById('gastoModal');
+    if (modalEl) {
+      bootstrap.Modal.getInstance(modalEl)?.hide();
+    }
+    this.formularioGasto.reset({ monto: null, descripcion: '' });
+    this.apiErrorService.clearFormErrors(this.formularioGasto);
+    this.gastoSeleccionado = null;
+    this.creandoGasto = false;
+  }
+
+  public abrirModalCrearGasto(): void {
+    this.gastoSeleccionado = null;
+    this.formularioGasto.reset({ monto: null, descripcion: '' });
+    this.apiErrorService.clearFormErrors(this.formularioGasto);
+    this.mostrarModalGasto();
+  }
+
+  guardarGasto(): void {
+    if (this.formularioGasto.invalid) {
+      this.formularioGasto.markAllAsTouched();
+      this.mensajeService.error('Por favor completa monto y descripción del gasto.');
+      return;
+    }
+
+    this.creandoGasto = true;
+    this.apiErrorService.clearFormErrors(this.formularioGasto);
+
+    const payload = this.formularioGasto.getRawValue() as CrearGastoRequest;
+    payload.monto = Number(payload.monto);
+    const request$ = this.gastoSeleccionado
+      ? this.gastoService.actualizar(this.gastoSeleccionado.id, payload as ActualizarGastoRequest)
+      : this.gastoService.crear(payload);
+    const mensajeExito = this.gastoSeleccionado
+      ? 'Gasto actualizado correctamente.'
+      : 'Gasto registrado correctamente.';
+
+    request$.subscribe({
+      next: () => {
+        this.mensajeService.success(mensajeExito);
+        this.formularioGasto.reset({ monto: null, descripcion: '' });
+        this.gastoSeleccionado = null;
+        this.creandoGasto = false;
+        this.cerrarModalGasto();
+        this.cargarGastos();
+      },
+      error: (error: unknown) => {
+        this.creandoGasto = false;
+        this.apiErrorService.handle(error, {
+          form: this.formularioGasto,
+          contextMessage: 'Error al guardar el gasto.',
+        });
+      },
+    });
+  }
+
+  iniciarEdicionGasto(gasto: Gasto): void {
+    this.gastoSeleccionado = gasto;
+    this.formularioGasto.patchValue({
+      monto: Number(gasto.monto),
+      descripcion: gasto.descripcion,
+    });
+    this.apiErrorService.clearFormErrors(this.formularioGasto);
+    this.mostrarModalGasto();
+  }
+
+  cancelarEdicionGasto(): void {
+    this.cerrarModalGasto();
+  }
+
+  prepararEliminacionGasto(gasto: Gasto): void {
+    this.gastoAEliminar = gasto;
+    this.eliminandoGasto = false;
+  }
+
+  confirmarEliminarGasto(): void {
+    if (!this.gastoAEliminar) {
+      return;
+    }
+
+    this.eliminandoGasto = true;
+    const id = this.gastoAEliminar.id;
+    this.gastoService.eliminar(id).subscribe({
+      next: () => {
+        this.mensajeService.success('Gasto eliminado correctamente.');
+        this.gastoAEliminar = null;
+        this.eliminandoGasto = false;
+        this.cargarGastos();
+      },
+      error: (error: unknown) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al eliminar el gasto.',
+        });
+        this.gastoAEliminar = null;
+        this.eliminandoGasto = false;
+      },
+    });
+  }
+
+  cancelarEliminarGasto(): void {
+    this.gastoAEliminar = null;
+    this.eliminandoGasto = false;
   }
 
   private cargarProductosVendidos(): void {
@@ -172,6 +341,15 @@ export class VentasComponent implements OnInit {
   public limpiarFiltrosProductos(): void {
     this.filtrosProductos = { nombreProducto: '', desde: '', hasta: '' };
     this.cargarProductosVendidos();
+  }
+
+  public aplicarFiltrosGastos(): void {
+    this.cargarGastos();
+  }
+
+  public limpiarFiltrosGastos(): void {
+    this.filtrosGastos = { nombre: '', desde: '', hasta: '' };
+    this.cargarGastos();
   }
 
   public cambiarPaginaProductos(event: PageEvent): void {
@@ -242,7 +420,7 @@ export class VentasComponent implements OnInit {
       next: () => {
         this.mensajeService.success(successMessage);
         this.cerrarModalVenta();
-        if (this.vistaProductos) {
+        if (this.vistaActual === 'productos') {
           this.cargarProductosVendidos();
         } else {
           this.cargarVentas();
@@ -309,7 +487,7 @@ export class VentasComponent implements OnInit {
     this.ventaService.eliminarVenta(ventaId).subscribe({
       next: () => {
         this.mensajeService.success('Venta eliminada correctamente.');
-        if (this.vistaProductos) {
+        if (this.vistaActual === 'productos') {
           this.cargarProductosVendidos();
         } else {
           this.cargarVentas();
@@ -330,7 +508,7 @@ export class VentasComponent implements OnInit {
   }
 
   ordenarPor(columna: string): void {
-    if (this.vistaProductos) {
+    if (this.vistaActual === 'productos') {
       if (this.sortColumnProductos === columna) {
         this.sortDirectionProductos = this.sortDirectionProductos === 'asc' ? 'desc' : 'asc';
       } else {
@@ -338,7 +516,7 @@ export class VentasComponent implements OnInit {
         this.sortDirectionProductos = 'asc';
       }
       this.cargarProductosVendidos();
-    } else {
+    } else if (this.vistaActual === 'ventas') {
       if (this.sortColumn === columna) {
         this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
       } else {

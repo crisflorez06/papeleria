@@ -3,10 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ProductoResponse } from '../models/producto.model';
-
-export interface ReporteGeneralResponse {
-  [key: string]: any;
-}
+import { ReporteGeneralResponse } from '../models/reporte.model';
 
 @Injectable({
   providedIn: 'root',

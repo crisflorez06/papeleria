@@ -1,0 +1,5 @@
+com/papeleria/services/gasto/GastoService.class
+com/papeleria/repositories/GastoRepository.class
+com/papeleria/controllers/gasto/GastoController.class
+com/papeleria/models/Gasto$GastoBuilder.class
+com/papeleria/models/Gasto.class

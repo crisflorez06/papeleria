@@ -9,6 +9,7 @@ import lombok.Getter;
 @Builder
 public class ReporteGeneralResponse {
     private BigDecimal totalGanancias;
+    private BigDecimal totalGastos;
     private BigDecimal totalDineroEnVentas;
     private Long totalVentas;
     private List<ProductoMasVendidoResponse> productosMasVendidos;

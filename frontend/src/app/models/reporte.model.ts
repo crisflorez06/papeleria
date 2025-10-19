@@ -7,6 +7,7 @@ export interface ProductoMasVendido {
 
 export interface ReporteGeneralResponse {
   totalGanancias: number;
+  totalGastos: number;
   totalDineroEnVentas: number;
   totalVentas: number;
   productosMasVendidos: ProductoMasVendido[];

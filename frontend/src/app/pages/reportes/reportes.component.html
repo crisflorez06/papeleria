@@ -38,8 +38,15 @@
       </div>
     </div>
 
+    <div class="report-card border-danger shadow-sm">
+      <header><h5>Total Gastos</h5></header>
+      <div class="report-value">
+        {{ reporteGeneral.totalGastos | currency : '$' : 'symbol' : '1.0-0' }}
+      </div>
+    </div>
+
     <div class="report-card border-warning shadow-sm">
-      <header><h5>Ganancias</h5></header>
+      <header><h5>Ganancias Netas</h5></header>
       <div class="report-value">
         {{ reporteGeneral.totalGanancias | currency : '$' : 'symbol' : '1.0-0' }}
       </div>

@@ -5,6 +5,7 @@ import com.papeleria.dtos.ProductoResponse;
 import com.papeleria.dtos.ReporteGeneralResponse;
 import com.papeleria.mappers.producto.ProductoMapper;
 import com.papeleria.models.Producto;
+import com.papeleria.repositories.GastoRepository;
 import com.papeleria.repositories.ProductoRepository;
 import com.papeleria.repositories.VentaRepository;
 import java.math.BigDecimal;
@@ -28,6 +29,7 @@ public class ReporteService {
     private static final int UMBRAL_STOCK_BAJO_DEFAULT = 10;
 
     private final VentaRepository ventaRepository;
+    private final GastoRepository gastoRepository;
     private final ProductoRepository productoRepository;
     private final ProductoMapper productoMapper;
 
@@ -37,11 +39,14 @@ public class ReporteService {
 
         BigDecimal totalGanancias = ventaRepository.sumGananciaByFechaBetween(inicio, fin);
         BigDecimal totalDineroEnVentas = ventaRepository.sumTotalByFechaBetween(inicio, fin);
+        BigDecimal totalGastos = gastoRepository.sumMontoByFechaBetween(fechaInicio, fechaFin);
+        BigDecimal totalGananciasNetas = totalGanancias.subtract(totalGastos);
         Long totalVentas = ventaRepository.countByFechaBetween(inicio, fin);
         List<ProductoMasVendidoResponse> productosMasVendidos = obtenerProductosMasVendidos(inicio, fin);
 
         return ReporteGeneralResponse.builder()
-            .totalGanancias(totalGanancias)
+            .totalGanancias(totalGananciasNetas)
+            .totalGastos(totalGastos)
             .totalDineroEnVentas(totalDineroEnVentas)
             .totalVentas(totalVentas)
             .productosMasVendidos(productosMasVendidos)
