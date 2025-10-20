@@ -64,6 +64,15 @@
     >
       Crear Producto
     </button>
+    <button
+      type="button"
+      class="btn btn-outline-success btn-sm ms-2"
+      data-bs-toggle="modal"
+      data-bs-target="#ingresarProductosModal"
+      (click)="abrirModalIngresarProductos()"
+    >
+      Ingresar Productos
+    </button>
   </div>
 
   <!-- Tabla de productos -->
@@ -415,6 +424,157 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal Ingresar Productos -->
+  <div
+    class="modal fade"
+    id="ingresarProductosModal"
+    tabindex="-1"
+    aria-labelledby="ingresarProductosLabel"
+    aria-hidden="true"
+    data-bs-backdrop="static"
+    data-bs-keyboard="false"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ingresarProductosLabel">Ingresar Productos</h5>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="modal"
+            (click)="cerrarModalIngresarProductos()"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="formularioMovimientos">
+            <div
+              class="alert alert-danger py-2"
+              role="alert"
+              *ngIf="formularioMovimientos.errors?.['backend'] as errorMovimientos"
+            >
+              {{ errorMovimientos }}
+            </div>
+            <div
+              class="alert alert-info py-2"
+              role="alert"
+              *ngIf="productosActivos.length === 0"
+            >
+              No hay productos activos disponibles para actualizar su stock.
+            </div>
+            <div formArrayName="movimientos">
+              <div
+                class="row g-3 align-items-end mb-3"
+                *ngFor="let movimiento of movimientosFormArray.controls; let i = index"
+                [formGroupName]="i"
+              >
+                <div class="col-md-5">
+                  <label class="form-label">Producto</label>
+                  <input type="hidden" formControlName="productoId" />
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Buscar producto"
+                    formControlName="productoNombre"
+                    [matAutocomplete]="autoProducto"
+                    (input)="filtrarProductosMovimiento(i)"
+                    (focus)="filtrarProductosMovimiento(i)"
+                  />
+                  <mat-autocomplete
+                    #autoProducto="matAutocomplete"
+                    (optionSelected)="seleccionarProductoMovimiento($event, i)"
+                  >
+                    <mat-option
+                      *ngFor="let prod of productosFiltradosMovimientos[i]"
+                      [value]="prod.nombre"
+                    >
+                      {{ prod.nombre }}
+                    </mat-option>
+                  </mat-autocomplete>
+                  <div
+                    class="form-text text-danger"
+                    *ngIf="movimiento.get('productoNombre')?.errors?.['backend'] as errorProductoNombre"
+                  >
+                    {{ errorProductoNombre }}
+                  </div>
+                  <div
+                    class="form-text text-danger"
+                    *ngIf="movimiento.get('productoId')?.errors?.['backend'] as errorProductoId"
+                  >
+                    {{ errorProductoId }}
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Cantidad</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    formControlName="cantidad"
+                    placeholder="0"
+                    min="1"
+                  />
+                  <div
+                    class="form-text text-danger"
+                    *ngIf="movimiento.get('cantidad')?.errors?.['backend'] as errorCantidad"
+                  >
+                    {{ errorCantidad }}
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Observación</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    formControlName="observacion"
+                    placeholder="Opcional"
+                  />
+                </div>
+                <div class="col-md-1 d-flex justify-content-center">
+                  <button
+                    type="button"
+                    class="btn btn-outline-danger"
+                    (click)="eliminarFilaMovimiento(i)"
+                    [disabled]="movimientosFormArray.length === 1"
+                    title="Eliminar fila"
+                  >
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+          <div class="d-flex justify-content-end">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="agregarFilaMovimiento()"
+            >
+              Agregar otro producto
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+            (click)="cerrarModalIngresarProductos()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-success"
+            (click)="confirmarIngresoMasivo()"
+            [disabled]="productosActivos.length === 0"
+          >
+            Confirmar ingreso
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Agregar Stock -->
   <div
     class="modal fade"

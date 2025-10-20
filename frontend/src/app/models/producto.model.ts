@@ -20,4 +20,12 @@ export interface ProductoRequest {
   categoria: string;
 }
 
+export interface MovimientoEntradaProductoRequest {
+  productoId: number;
+  cantidad: number;
+  observacion?: string | null;
+}
 
+export interface MovimientoEntradaMasivaRequest {
+  movimientos: MovimientoEntradaProductoRequest[];
+}

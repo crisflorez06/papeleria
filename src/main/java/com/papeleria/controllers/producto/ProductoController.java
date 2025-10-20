@@ -1,5 +1,7 @@
 package com.papeleria.controllers.producto;
 
+import com.papeleria.dtos.MovimientoEntradaMasivaRequest;
+import com.papeleria.dtos.MovimientoEntradaRequest;
 import com.papeleria.dtos.ProductoRequest;
 import com.papeleria.dtos.ProductoResponse;
 import com.papeleria.mappers.producto.ProductoMapper;
@@ -13,9 +15,16 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 import jakarta.validation.Valid;
 
 @RestController
@@ -72,12 +81,21 @@ public class ProductoController {
     }
 
     @PatchMapping("/{id}/agregar")
-    public ResponseEntity<ProductoResponse> agregarCantidad(@PathVariable Long id, @RequestBody Map<String, Integer> request) {
+    public ResponseEntity<ProductoResponse> agregarCantidad(@PathVariable Long id, @Valid @RequestBody MovimientoEntradaRequest request) {
 
-        Integer cantidad = request.get("cantidad");
-        Producto productoActualizado = productoService.agregarCantidad(id, cantidad);
+        Producto productoActualizado = productoService.agregarCantidad(id, request.getCantidad(), request.getObservacion());
         ProductoResponse response = productoMapper.toResponse(productoActualizado);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @PatchMapping("/agregar-masivo")
+    public ResponseEntity<?> agregarCantidadMasivo(@Valid @RequestBody MovimientoEntradaMasivaRequest request) {
+        var movimientos = request.getMovimientos();
+        if (movimientos == null || movimientos.isEmpty()) {
+            return ResponseEntity.badRequest().body("Debe proporcionar al menos un producto a actualizar.");
+        }
+
+        var productosActualizados = productoService.agregarCantidadMasivo(movimientos);
+        return ResponseEntity.ok(productoMapper.toResponseList(productosActualizados));
+    }
 }

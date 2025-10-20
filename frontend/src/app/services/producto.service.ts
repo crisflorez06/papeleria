@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { map, Observable } from 'rxjs';
-import { ProductoRequest, ProductoResponse } from '../models/producto.model';
+import { MovimientoEntradaMasivaRequest, ProductoRequest, ProductoResponse } from '../models/producto.model';
 import { environment } from '../../environments/environment';
 import { Page } from '../core/types/page';
 
@@ -62,7 +62,15 @@ export class ProductoService {
     return this.http.patch<ProductoResponse>(`${this.apiUrl}/${id}/estado`, {});
   }
 
-  sumarStock(id: number, cantidad: number): Observable<ProductoResponse> {
-    return this.http.patch<ProductoResponse>(`${this.apiUrl}/${id}/agregar`, { cantidad });
+  sumarStock(id: number, cantidad: number, observacion?: string | null): Observable<ProductoResponse> {
+    const body: Record<string, unknown> = { cantidad };
+    if (observacion !== undefined && observacion !== null && observacion !== '') {
+      body['observacion'] = observacion;
+    }
+    return this.http.patch<ProductoResponse>(`${this.apiUrl}/${id}/agregar`, body);
+  }
+
+  actualizarStockMasivo(request: MovimientoEntradaMasivaRequest): Observable<ProductoResponse[]> {
+    return this.http.patch<ProductoResponse[]>(`${this.apiUrl}/agregar-masivo`, request);
   }
 }
