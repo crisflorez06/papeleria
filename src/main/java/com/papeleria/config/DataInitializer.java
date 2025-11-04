@@ -1,17 +1,21 @@
 package com.papeleria.config;
 
 import com.papeleria.models.DetalleVenta;
+import com.papeleria.models.Movimiento;
+import com.papeleria.models.MovimientoTipo;
 import com.papeleria.models.Producto;
 import com.papeleria.models.Venta;
+import com.papeleria.repositories.MovimientoRepository;
 import com.papeleria.repositories.ProductoRepository;
 import com.papeleria.repositories.VentaRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -21,6 +25,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private VentaRepository ventaRepository;
+
+    @Autowired
+    private MovimientoRepository movimientoRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -95,6 +102,49 @@ public class DataInitializer implements CommandLineRunner {
             System.out.println("Datos de ventas de ejemplo creados.");
         } else {
             System.out.println("La base de datos ya contiene datos de ventas. No se crearán datos de ejemplo.");
+        }
+
+        if (movimientoRepository.count() == 0) {
+            System.out.println("No hay movimientos en la base de datos. Creando datos de ejemplo...");
+
+            List<Producto> productos = productoRepository.findAll();
+
+            if (productos.isEmpty()) {
+                System.out.println("No se pudieron crear movimientos porque no hay productos disponibles.");
+                return;
+            }
+
+            LocalDate hoy = LocalDate.now();
+
+            Movimiento m1 = Movimiento.builder()
+                    .producto(productos.get(0))
+                    .cantidad(25)
+                    .tipo(MovimientoTipo.INGRESO)
+                    .observacion("Reposición inicial de inventario.")
+                    .fechaMovimiento(hoy.minusDays(3).atTime(LocalTime.of(10, 30)))
+                    .build();
+
+            Movimiento m2 = Movimiento.builder()
+                    .producto(productos.size() > 1 ? productos.get(1) : productos.get(0))
+                    .cantidad(15)
+                    .tipo(MovimientoTipo.INGRESO)
+                    .observacion("Ingreso desde proveedor principal.")
+                    .fechaMovimiento(hoy.minusDays(2).atTime(LocalTime.of(15, 45)))
+                    .build();
+
+            Movimiento m3 = Movimiento.builder()
+                    .producto(productos.size() > 2 ? productos.get(2) : productos.get(0))
+                    .cantidad(30)
+                    .tipo(MovimientoTipo.INGRESO)
+                    .observacion("Reposición por temporada escolar.")
+                    .fechaMovimiento(hoy.minusDays(1).atTime(LocalTime.of(9, 15)))
+                    .build();
+
+            movimientoRepository.saveAll(List.of(m1, m2, m3));
+
+            System.out.println("Datos de movimientos de ejemplo creados.");
+        } else {
+            System.out.println("La base de datos ya contiene datos de movimientos. No se crearán datos de ejemplo.");
         }
     }
 }

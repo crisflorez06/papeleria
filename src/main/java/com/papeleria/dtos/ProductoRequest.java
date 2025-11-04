@@ -2,7 +2,6 @@ package com.papeleria.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import lombok.Getter;
@@ -18,11 +17,11 @@ public class ProductoRequest {
     private String descripcion;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     private BigDecimal precioCompra;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     private BigDecimal precioVenta;
 
     @NotNull

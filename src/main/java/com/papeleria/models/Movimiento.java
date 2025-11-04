@@ -13,7 +13,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +39,6 @@ public class Movimiento {
     private Producto producto;
 
     @NotNull
-    @Positive
     @Column(nullable = false)
     private Integer cantidad;
 

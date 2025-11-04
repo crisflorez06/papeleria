@@ -88,14 +88,21 @@ public class ProductoService {
     }
 
     public Producto agregarCantidad(Long id, Integer cantidad, String observacion) {
-        if (cantidad == null || cantidad <= 0) {
-            throw new IllegalArgumentException("La cantidad debe ser mayor a cero.");
+        if (cantidad == null || cantidad == 0) {
+            throw new IllegalArgumentException("La cantidad no puede ser cero.");
         }
 
         Producto producto = productoRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Producto no encontrado con id: " + id));
 
-        producto.setStock(producto.getStock() + cantidad);
+        int stockActual = producto.getStock() != null ? producto.getStock() : 0;
+        int nuevoStock = stockActual + cantidad;
+        if (nuevoStock < 0) {
+            throw new IllegalArgumentException(
+                    "El stock disponible (" + stockActual + ") es insuficiente para descontar la cantidad solicitada (" + Math.abs(cantidad) + ").");
+        }
+
+        producto.setStock(nuevoStock);
         Producto productoActualizado = productoRepository.save(producto);
         movimientoService.registrarIngreso(productoActualizado, cantidad, observacion);
         return productoActualizado;
@@ -130,11 +137,19 @@ public class ProductoService {
             }
 
             Integer cantidad = movimiento.getCantidad();
-            if (cantidad == null || cantidad <= 0) {
-                throw new IllegalArgumentException("La cantidad debe ser mayor a cero para el producto con id: " + productoId);
+            if (cantidad == null || cantidad == 0) {
+                throw new IllegalArgumentException("La cantidad no puede ser cero para el producto con id: " + productoId);
             }
 
-            producto.setStock(producto.getStock() + cantidad);
+            int stockActual = producto.getStock() != null ? producto.getStock() : 0;
+            int nuevoStock = stockActual + cantidad;
+            if (nuevoStock < 0) {
+                throw new IllegalArgumentException(
+                        "El stock disponible para el producto con id " + productoId + " es insuficiente (stock actual: "
+                                + stockActual + ", cantidad solicitada: " + Math.abs(cantidad) + ").");
+            }
+
+            producto.setStock(nuevoStock);
             movimientoService.registrarIngreso(producto, cantidad, movimiento.getObservacion());
         });
 

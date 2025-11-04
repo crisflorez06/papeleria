@@ -9,7 +9,6 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -40,12 +39,12 @@ public class Producto {
     private String descripcion;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     @Column(name = "precio_compra", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioCompra;
 
     @NotNull
-    @Positive
+    @PositiveOrZero
     @Column(name = "precio_venta", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioVenta;
 

@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReporteService {
 
     private static final int LIMITE_MAS_VENDIDOS = 10;
-    private static final int UMBRAL_STOCK_BAJO_DEFAULT = 10;
+    private static final int UMBRAL_STOCK_BAJO_DEFAULT = 3;
 
     private final VentaRepository ventaRepository;
     private final GastoRepository gastoRepository;

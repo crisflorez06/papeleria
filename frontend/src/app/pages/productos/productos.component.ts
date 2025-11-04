@@ -3,11 +3,14 @@ import * as bootstrap from 'bootstrap';
 import { CommonModule } from '@angular/common';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import {
+  AbstractControl,
   FormArray,
   FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
   Validators,
 } from '@angular/forms';
 import { MatExpansionModule } from '@angular/material/expansion';
@@ -22,6 +25,7 @@ import { take } from 'rxjs';
 import { MensajeService } from '../../services/mensaje.service';
 import { ProductoService } from '../../services/producto.service';
 import { ApiErrorService } from '../../core/services/api-error.service';
+import { MovimientoResponse, MovimientoTipo } from '../../models/movimiento.model';
 
 @Component({
   selector: 'app-productos',
@@ -58,9 +62,28 @@ export class ProductosComponent implements OnInit {
 
   public filtrosAbiertos = false;
 
+  public vistaActual: 'productos' | 'movimientos' = 'productos';
+
+  public movimientos: MovimientoResponse[] = [];
+  public totalMovimientos = 0;
+  public sizeMovimientos = 10;
+  public indexMovimientos = 0;
+  public sortColumnMovimientos = 'fechaMovimiento';
+  public sortDirectionMovimientos: 'asc' | 'desc' = 'desc';
+
+  public filtrosMovimientos = {
+    productoId: null as number | null,
+    tipo: null as MovimientoTipo | null,
+    desde: '',
+    hasta: '',
+  };
+
+  public tiposMovimiento: MovimientoTipo[] = ['INGRESO'];
+
   private fb = inject(FormBuilder);
   formularioProducto: FormGroup;
   formularioMovimientos: FormGroup;
+  formularioMovimientoEditar: FormGroup;
 
   public productosActivos: ProductoResponse[] = [];
   public productosFiltradosMovimientos: { [index: number]: { id: number; nombre: string }[] } = {};
@@ -74,6 +97,10 @@ export class ProductosComponent implements OnInit {
   productoParaSumar: ProductoResponse | null = null;
   cantidadAgregar: number | null = null;
 
+  movimientoSeleccionado: MovimientoResponse | null = null;
+  movimientoAEliminar: MovimientoResponse | null = null;
+  observacionEliminacionMovimiento = '';
+
   constructor() {
     this.formularioProducto = this.fb.group({
       nombre: ['', Validators.required],
@@ -86,6 +113,10 @@ export class ProductosComponent implements OnInit {
     this.formularioMovimientos = this.fb.group({
       movimientos: this.fb.array([this.crearMovimientoFormGroup()]),
     });
+    this.formularioMovimientoEditar = this.fb.group({
+      cantidad: [null, [Validators.required, this.cantidadNoCeroValidator()]],
+      observacion: [''],
+    });
   }
 
   get movimientosFormArray(): FormArray {
@@ -96,9 +127,23 @@ export class ProductosComponent implements OnInit {
     return this.fb.group({
       productoId: [null, Validators.required],
       productoNombre: ['', Validators.required],
-      cantidad: [null, [Validators.required, Validators.min(1)]],
+      cantidad: [null, [Validators.required, this.cantidadNoCeroValidator()]],
       observacion: [''],
     });
+  }
+
+  private cantidadNoCeroValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const rawValue = control.value;
+      if (rawValue === null || rawValue === undefined || rawValue === '') {
+        return null;
+      }
+      const numero = Number(rawValue);
+      if (!Number.isFinite(numero) || numero === 0) {
+        return { noZero: true };
+      }
+      return null;
+    };
   }
 
   private resetFormularioMovimientos(): void {
@@ -151,6 +196,20 @@ export class ProductosComponent implements OnInit {
           this.categoriasProductos = [];
         },
       });
+  }
+
+  public mostrarProductos(): void {
+    if (this.vistaActual !== 'productos') {
+      this.vistaActual = 'productos';
+      this.cargarProductos();
+    }
+  }
+
+  public mostrarMovimientos(): void {
+    if (this.vistaActual !== 'movimientos') {
+      this.vistaActual = 'movimientos';
+    }
+    this.cargarMovimientos();
   }
 
   abrirModalCrearProducto(): void {
@@ -236,6 +295,42 @@ export class ProductosComponent implements OnInit {
       });
   }
 
+  private cargarMovimientos(): void {
+    const filtros = {
+      productoId: this.filtrosMovimientos.productoId,
+      tipo: this.filtrosMovimientos.tipo,
+      desde: this.filtrosMovimientos.desde?.trim() ?? '',
+      hasta: this.filtrosMovimientos.hasta?.trim() ?? '',
+    };
+
+    this.productoService
+      .obtenerMovimientos(
+        this.indexMovimientos,
+        this.sizeMovimientos,
+        {
+          productoId: filtros.productoId,
+          tipo: filtros.tipo,
+          desde: filtros.desde !== '' ? filtros.desde : null,
+          hasta: filtros.hasta !== '' ? filtros.hasta : null,
+        },
+        this.sortColumnMovimientos,
+        this.sortDirectionMovimientos
+      )
+      .subscribe({
+        next: (page) => {
+          this.movimientos = page.content;
+          this.totalMovimientos = page.totalElements;
+        },
+        error: (error) => {
+          this.apiErrorService.handle(error, {
+            contextMessage: 'Error al cargar los movimientos.',
+          });
+          this.movimientos = [];
+          this.totalMovimientos = 0;
+        },
+      });
+  }
+
   ordenarPor(columna: string): void {
     if (this.sortColumn === columna) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -282,6 +377,163 @@ export class ProductosComponent implements OnInit {
       estado: true,
     };
     this.cargarProductos();
+  }
+
+  public aplicarFiltrosMovimientos(): void {
+    this.indexMovimientos = 0;
+    this.cargarMovimientos();
+  }
+
+  public limpiarFiltrosMovimientos(): void {
+    this.filtrosMovimientos = {
+      productoId: null,
+      tipo: null,
+      desde: '',
+      hasta: '',
+    };
+    this.indexMovimientos = 0;
+    this.cargarMovimientos();
+  }
+
+  public ordenarMovimientosPor(columna: string): void {
+    if (this.sortColumnMovimientos === columna) {
+      this.sortDirectionMovimientos =
+        this.sortDirectionMovimientos === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumnMovimientos = columna;
+      this.sortDirectionMovimientos = 'asc';
+    }
+    this.cargarMovimientos();
+  }
+
+  public cambiarPaginaMovimientos(event: PageEvent): void {
+    this.indexMovimientos = event.pageIndex;
+    this.sizeMovimientos = event.pageSize;
+    this.cargarMovimientos();
+  }
+
+  public abrirModalEditarMovimiento(movimiento: MovimientoResponse): void {
+    this.movimientoSeleccionado = movimiento;
+    this.apiErrorService.clearFormErrors(this.formularioMovimientoEditar);
+    this.formularioMovimientoEditar.reset({
+      cantidad: movimiento.cantidad,
+      observacion: movimiento.observacion ?? '',
+    });
+    this.mostrarModal('editarMovimientoModal');
+  }
+
+  public guardarMovimientoEditado(): void {
+    if (!this.movimientoSeleccionado) {
+      return;
+    }
+
+    if (this.formularioMovimientoEditar.invalid) {
+      this.formularioMovimientoEditar.markAllAsTouched();
+      this.mensajeService.error('Por favor completa la cantidad del movimiento.');
+      return;
+    }
+
+    const cantidad = Number(this.formularioMovimientoEditar.value.cantidad);
+    const observacionRaw = this.formularioMovimientoEditar.value.observacion as string | null | undefined;
+    const observacion =
+      observacionRaw && observacionRaw.trim() !== '' ? observacionRaw.trim() : null;
+
+    this.apiErrorService.clearFormErrors(this.formularioMovimientoEditar);
+    this.productoService
+      .actualizarMovimiento(this.movimientoSeleccionado.id, { cantidad, observacion })
+      .subscribe({
+        next: () => {
+          this.mensajeService.success('Movimiento actualizado con éxito.');
+          this.cerrarModalEditarMovimiento();
+          this.cargarMovimientos();
+          this.cargarProductos();
+          this.cargarProductosActivos();
+        },
+        error: (error) => {
+          this.apiErrorService.handle(error, {
+            form: this.formularioMovimientoEditar,
+            contextMessage: 'Error al actualizar el movimiento.',
+          });
+        },
+      });
+  }
+
+  public cerrarModalEditarMovimiento(): void {
+    this.ocultarModal('editarMovimientoModal');
+    this.limpiarBackdrop();
+    this.movimientoSeleccionado = null;
+    this.formularioMovimientoEditar.reset();
+    this.apiErrorService.clearFormErrors(this.formularioMovimientoEditar);
+  }
+
+  public abrirModalEliminarMovimiento(movimiento: MovimientoResponse): void {
+    this.movimientoAEliminar = movimiento;
+    this.observacionEliminacionMovimiento = '';
+    this.mostrarModal('eliminarMovimientoModal');
+  }
+
+  public confirmarEliminarMovimiento(): void {
+    if (!this.movimientoAEliminar) {
+      return;
+    }
+
+    const observacion =
+      this.observacionEliminacionMovimiento && this.observacionEliminacionMovimiento.trim() !== ''
+        ? this.observacionEliminacionMovimiento.trim()
+        : null;
+
+    this.productoService.eliminarMovimiento(this.movimientoAEliminar.id, observacion).subscribe({
+      next: () => {
+        this.mensajeService.success('Movimiento eliminado con éxito.');
+        this.cerrarModalEliminarMovimiento();
+        this.cargarMovimientos();
+        this.cargarProductos();
+        this.cargarProductosActivos();
+      },
+      error: (error) => {
+        this.apiErrorService.handle(error, {
+          contextMessage: 'Error al eliminar el movimiento.',
+        });
+      },
+    });
+  }
+
+  public cerrarModalEliminarMovimiento(): void {
+    this.ocultarModal('eliminarMovimientoModal');
+    this.limpiarBackdrop();
+    this.movimientoAEliminar = null;
+    this.observacionEliminacionMovimiento = '';
+  }
+
+  private mostrarModal(id: string): void {
+    const modal = document.getElementById(id);
+    if (!modal) {
+      return;
+    }
+    bootstrap.Modal.getOrCreateInstance(modal).show();
+  }
+
+  private ocultarModal(id: string): void {
+    const modal = document.getElementById(id);
+    if (!modal) {
+      return;
+    }
+    const instance = bootstrap.Modal.getInstance(modal);
+    if (instance) {
+      instance.hide();
+    }
+  }
+
+  private limpiarBackdrop(): void {
+    setTimeout(() => {
+      const algunModalAbierto = document.querySelector('.modal.show');
+      if (!algunModalAbierto) {
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.removeProperty('padding-right');
+        document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
+      }
+    }, 400);
   }
 
   guardarProducto() {
@@ -371,12 +623,18 @@ export class ProductosComponent implements OnInit {
   }
 
   confirmarAgregarStock() {
-    if (!this.productoParaSumar || !this.cantidadAgregar || this.cantidadAgregar <= 0) {
-      this.mensajeService.error('Debe ingresar una cantidad válida.');
+    if (!this.productoParaSumar) {
+      this.mensajeService.error('Debe seleccionar un producto.');
       return;
     }
 
-    this.productoService.sumarStock(this.productoParaSumar.id!, this.cantidadAgregar).subscribe({
+    const cantidad = Number(this.cantidadAgregar);
+    if (!Number.isFinite(cantidad) || cantidad === 0) {
+      this.mensajeService.error('La cantidad debe ser distinta de cero.');
+      return;
+    }
+
+    this.productoService.sumarStock(this.productoParaSumar.id!, cantidad).subscribe({
       next: () => {
         this.mensajeService.success('Stock actualizado con éxito.');
         this.productoParaSumar = null;
@@ -437,9 +695,13 @@ export class ProductosComponent implements OnInit {
         const productoNombreControl = control.get('productoNombre');
         if (productoIdControl) {
           productoIdControl.setErrors({ ...(productoIdControl.errors ?? {}), required: true });
+          productoIdControl.markAsTouched();
+          productoIdControl.updateValueAndValidity({ onlySelf: true });
         }
         if (productoNombreControl) {
           productoNombreControl.setErrors({ ...(productoNombreControl.errors ?? {}), required: true });
+          productoNombreControl.markAsTouched();
+          productoNombreControl.updateValueAndValidity({ onlySelf: true });
         }
         this.mensajeService.error('Selecciona un producto válido en cada fila.');
         return;
@@ -447,11 +709,13 @@ export class ProductosComponent implements OnInit {
 
       const cantidad = Number(movimiento.cantidad);
 
-      if (!Number.isFinite(cantidad) || cantidad <= 0) {
-        this.mensajeService.error('Cada producto debe tener una cantidad mayor a cero.');
+      if (!Number.isFinite(cantidad) || cantidad === 0) {
+        this.mensajeService.error('Cada producto debe tener una cantidad distinta de cero.');
         const cantidadControl = control.get('cantidad');
         if (cantidadControl) {
-          cantidadControl.setErrors({ ...(cantidadControl.errors ?? {}), min: true });
+          cantidadControl.setErrors({ ...(cantidadControl.errors ?? {}), noZero: true });
+          cantidadControl.markAsTouched();
+          cantidadControl.updateValueAndValidity({ onlySelf: true });
         }
         return;
       }
@@ -521,13 +785,7 @@ export class ProductosComponent implements OnInit {
       const instance = bootstrap.Modal.getInstance(modal) ?? bootstrap.Modal.getOrCreateInstance(modal);
       instance.hide();
     }
-    setTimeout(() => {
-      const algunModalAbierto = document.querySelector('.modal.show');
-      if (!algunModalAbierto) {
-        document.body.classList.remove('modal-open');
-        document.querySelectorAll('.modal-backdrop').forEach((backdrop) => backdrop.remove());
-      }
-    }, 200);
+    this.limpiarBackdrop();
     this.resetFormularioMovimientos();
   }
 

@@ -400,7 +400,7 @@
             <tbody>
               <tr *ngFor="let gasto of gastos">
                 <td class="border-end">{{ gasto.fecha | date : 'dd/MM/yyyy' }}</td>
-                <td class="border-end text-start">{{ gasto.descripcion }}</td>
+                <td class="border-end">{{ gasto.descripcion }}</td>
                 <td class="border-end">{{ gasto.monto | currency : '$ ' : 'symbol' : '1.0-0' }}</td>
                 <td>
                   <button

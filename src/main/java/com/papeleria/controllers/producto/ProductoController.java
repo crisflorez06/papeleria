@@ -81,7 +81,10 @@ public class ProductoController {
     }
 
     @PatchMapping("/{id}/agregar")
-    public ResponseEntity<ProductoResponse> agregarCantidad(@PathVariable Long id, @Valid @RequestBody MovimientoEntradaRequest request) {
+    public ResponseEntity<ProductoResponse> agregarCantidad(@PathVariable Long id, @RequestBody MovimientoEntradaRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Debe proporcionar los datos del movimiento.");
+        }
 
         Producto productoActualizado = productoService.agregarCantidad(id, request.getCantidad(), request.getObservacion());
         ProductoResponse response = productoMapper.toResponse(productoActualizado);
@@ -89,7 +92,10 @@ public class ProductoController {
     }
 
     @PatchMapping("/agregar-masivo")
-    public ResponseEntity<?> agregarCantidadMasivo(@Valid @RequestBody MovimientoEntradaMasivaRequest request) {
+    public ResponseEntity<?> agregarCantidadMasivo(@RequestBody MovimientoEntradaMasivaRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Debe proporcionar los datos de los movimientos.");
+        }
         var movimientos = request.getMovimientos();
         if (movimientos == null || movimientos.isEmpty()) {
             return ResponseEntity.badRequest().body("Debe proporcionar al menos un producto a actualizar.");

@@ -46,4 +46,8 @@ public final class MovimientoSpecification {
                     : cb.lessThanOrEqualTo(root.get("fechaMovimiento"), hastaDateTime);
         };
     }
+
+    public static Specification<Movimiento> cantidadDistintaDeCero() {
+        return (root, query, cb) -> cb.notEqual(root.get("cantidad"), 0);
+    }
 }
